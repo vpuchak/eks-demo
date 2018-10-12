@@ -9,7 +9,7 @@ data "aws_vpc" "main" {
   }
 }
 
-data "aws_subnet" "public" {
+data "aws_subnet_ids" "public" {
   vpc_id = "${data.aws_vpc.main.id}"
   tags {
     Name = "${var.env} - public"
@@ -19,19 +19,12 @@ data "aws_subnet" "public" {
 data "aws_security_group" "cluster" {
   vpc_id = "${data.aws_vpc.main.id}"
   tags {
-    Name = "eks-${var.env}-sg"
+    Name = "${var.env} - cluster"
   }
 }
 
 data "aws_iam_role" "cluster" {
-  tags {
-    name = "eks-${var.env}"
-  }
-}
-
-resource "aws_key_pair" "main" {
-  key_name   = "cats"
-  public_key = "${file(var.public_key_path)}"
+  name = "eks-${var.env}"
 }
 
 resource "aws_eks_cluster" "main" {
@@ -40,6 +33,6 @@ resource "aws_eks_cluster" "main" {
 
   vpc_config {
     security_group_ids = ["${data.aws_security_group.cluster.id}"]
-    subnet_ids         = ["${data.aws_subnet.public.*.id}"]
+    subnet_ids         = ["${data.aws_subnet_ids.public.ids}"]
   }
 }

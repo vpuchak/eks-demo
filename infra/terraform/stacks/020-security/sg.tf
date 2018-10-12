@@ -5,13 +5,6 @@ data "aws_vpc" "main" {
   }
 }
 
-data "aws_subnet" "public" {
-  vpc_id = "${data.aws_vpc.main.id}"
-  tags {
-    Name = "${var.env} - public"
-  }
-}
-
 resource "aws_security_group" "cluster" {
   name        = "eks-${var.env}-sg"
   description = "Cluster communication with worker nodes"

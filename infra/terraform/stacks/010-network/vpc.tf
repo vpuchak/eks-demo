@@ -7,11 +7,13 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  tags {
-    Name = "${var.env} - Main"
-    Env = "${var.env}"
-    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
-  }
+  tags = "${
+    map(
+     "Name", "${var.env} - Main",
+     "Env", "${var.env}",
+     "kubernetes.io/cluster/${var.cluster-name}", "shared",
+    )
+  }"
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -23,12 +25,18 @@ resource "aws_internet_gateway" "gw" {
 }
 
 resource "aws_subnet" "public" {
+  count = "${var.subnets}"
   vpc_id     = "${aws_vpc.main.id}"
-  cidr_block = "${cidrsubnet(var.vpc_cidr_block, 3, 1)}"
-  tags {
-    Name = "${var.env} - public"
-    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
-  }
+  cidr_block = "${cidrsubnet(var.vpc_cidr_block, 5, count.index)}"
+  availability_zone = "${element(var.zones, count.index)}"
+
+  tags = "${
+    map(
+     "Name", "${var.env} - public",
+     "Env", "${var.env}",
+     "kubernetes.io/cluster/${var.cluster-name}", "shared",
+    )
+  }"
 }
 
 resource "aws_route_table" "public" {
@@ -46,8 +54,9 @@ resource "aws_route" "public_route" {
 }
 
 resource "aws_route_table_association" "public" {
+  count = "${var.subnets}"
   route_table_id = "${aws_route_table.public.id}"
-  subnet_id      = "${aws_subnet.public.id}"
+  subnet_id      = "${element(aws_subnet.public.*.id, count.index)}"
 }
 
 resource "aws_security_group" "main" {
